@@ -1,0 +1,121 @@
+<style>
+    #proof {
+        background-color: black;
+        min-width: 35em;
+        /* position the proof in the top left
+           and fill the viewport */
+        /* position: absolute;
+        top: 0; left: 0;
+        width: 100vw;
+        height: 100vh; */
+    }
+
+    #interactive-coloring {
+        display: flex;
+        flex-flow: row nowrap;
+    }
+
+    .palette {
+        min-width: 10%;
+        list-style: none;        
+    }
+    .palette > li {
+        width: 25px;
+        height: 25px;
+    }
+
+    html, body {
+        color: white;
+        background: black;
+    }
+
+    .edge {
+        stroke: darkgray;
+    }
+</style>
+<!-- this is a comment-->
+<div id="interactive-coloring">
+    <ul class="palette">
+        <li style="background: rgb(211, 36, 36);" class="swatch"></li>
+        <li style="background: orange;" class="swatch"></li>
+        <li style="background: yellow;" class="swatch"></li>
+        <li style="background: green;" class="swatch"></li>
+        <li style="background: blue;" class="swatch"></li>
+        <li style="background: indigo;" class="swatch"></li>
+        <li style="background: violet;" class="swatch"></li>
+    </ul>
+    <svg id="proof" viewBox="-5 -5 10 10">
+    </svg>
+</div>
+<script>
+
+function mksvg(tag, attrs={}, dead=null, ns='http://www.w3.org/2000/svg') {
+    let el = attrs['id'] && document.getElementById(attrs.id)
+    if (!el) el = document.createElementNS(ns, tag)    
+    for (let [attr, value] of Object.entries(attrs)) {
+        el.setAttribute(attr, value)
+    }
+    if (dead) dead.delete(el)
+    return el
+}
+
+function drawClique(n=12, svg=proof) {
+    const points = [...centerpoints(n, 3)]
+    const dead = new Set(svg.querySelectorAll('.edge, .node'))
+
+    for (let i = 0; i != n; ++i) {
+        for (let j = 0; j != n; ++j) {
+            if (i === j) continue
+            const nodes = [i, j].sort()
+            const id = `edge_${nodes[0]}_${nodes[1]}`
+
+            const [x1, y1] = points[nodes[0]]
+            const [x2, y2] = points[nodes[1]]
+            const edge = mksvg('line', {
+                id,
+                class: 'edge',
+                x1, y1, x2, y2,
+                'data-src': nodes[0],
+                'data-dst': nodes[1],
+                // stroke: 'green',
+                'stroke-width': 0.1,
+            }, dead)
+            svg.appendChild(edge)
+        }
+    }
+
+    let i = 0;
+    for (let [cx, cy] of points) {
+        const id = `node_${i++}`
+        const node = mksvg('circle', {
+            id,
+            class: 'node',
+            cx, cy, r: 0.1, fill: 'fuchsia'
+        }, dead)
+        svg.appendChild(node)
+    }
+
+    for (const child of dead) {
+        svg.removeChild(child)
+    }
+}
+
+addEventListener('click', function(evt) {
+  if (evt.target.matches('.swatch')) {
+    this._selectedColor = evt.target.style.backgroundColor;
+  }
+  if (evt.target.matches('.edge')) {
+    console.log(evt.target, this._selectedColor)
+    evt.target.style.stroke = this._selectedColor || 'red'
+  }
+})
+
+function *centerpoints(n, rx=1.0, ry=rx) {
+    for (let i = 0; i < n; ++i) {
+        const theta = (i * 2 * Math.PI) / n        
+        yield [rx * Math.cos(theta), ry * Math.sin(theta)]
+    }
+}
+
+drawClique(5)
+</script>
