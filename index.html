@@ -1,23 +1,19 @@
 <style>
-    #proof {
-        background-color: black;
-        min-width: 35em;
-        /* position the proof in the top left
-           and fill the viewport */
-        /* position: absolute;
-        top: 0; left: 0;
-        width: 100vw;
-        height: 100vh; */
-    }
-
     #interactive-coloring {
         display: flex;
-        flex-flow: row nowrap;
+        flex-flow: row nowrap; /* Changed from column to row */
     }
 
     .palette {
+        width: 20%; /* Adjusted width */
         min-width: 10%;
         list-style: none;        
+    }
+
+    #proof {
+        background-color: black;
+        width: 80%; /* Adjusted width */
+        min-width: 35em;
     }
     .palette > li {
         width: 25px;
@@ -28,12 +24,56 @@
         color: white;
         background: black;
     }
-
     .edge {
         stroke: white;
     }
+      /* Style for the vertical slider and its container */
+    .slider-container {
+        /* transform: rotate(-90deg);
+        transform-origin: left top; */
+        margin-top: 5px; /* Adjust as needed */
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+    }
+    .slider {
+        width: 300px; Adjust as needed
+        /* min-width: 10%; */
+        -webkit-appearance: none; /* Override default appearance */
+        appearance: none;
+        background: transparent;
+        outline: none;
+        border: 2px solid yellow; 
+    }
+    /* Custom thumb handle on the slider */
+    .slider::-webkit-slider-thumb {
+        -webkit-appearance: none;
+        appearance: none;
+        width: 25px;
+        height: 25px;
+        background: #4CAF50; /* Green background for visibility */
+        cursor: pointer;
+    }
+    .slider::-moz-range-thumb {
+        width: 25px;
+        height: 25px;
+        background: #4CAF50;
+        cursor: pointer;
+    }
+    /* Style for the slider label */
+    .slider-label {
+        writing-mode: tb-rl;
+        transform: rotate(180deg);
+        margin-bottom: 10px;
+        color: white;
+    }
 </style>
-<!-- this is a comment-->
+
+<div class="slider-container">
+    <!-- Vertical Slider for node adjustment -->
+    <input type="range" min="3" max="12" value="9" class="slider" id="nodeSlider">
+</div>
+
 <div id="interactive-coloring">
     <ul class="palette">
         <li style="background: chocolate;" class="swatch"></li>
@@ -48,23 +88,30 @@
         <li style="background: indigo;" class="swatch"></li>
         <!-- <li style="background: violet;" class="swatch"></li> -->
     </ul>
+
     <svg id="proof" viewBox="-5 -5 10 10">
     </svg>
+   
 </div>
+
 <script>
-
-function mksvg(tag, attrs={}, dead=null, ns='http://www.w3.org/2000/svg') {
-    let el = attrs['id'] && document.getElementById(attrs.id)
-    if (!el) el = document.createElementNS(ns, tag)    
-    for (let [attr, value] of Object.entries(attrs)) {
-        el.setAttribute(attr, value)
+    function mksvg(tag, attrs={}, dead=null, ns='http://www.w3.org/2000/svg') {
+        let el = attrs['id'] && document.getElementById(attrs.id)
+        if (!el) el = document.createElementNS(ns, tag)    
+        for (let [attr, value] of Object.entries(attrs)) {
+            el.setAttribute(attr, value)
+        }
+        if (dead) dead.delete(el)
+        return el
     }
-    if (dead) dead.delete(el)
-    return el
-}
 
-function drawClique(n=12, svg=proof) {
-    const points = [...centerpoints(n, 3)]
+    function drawClique(n=9, svg=document.getElementById('proof')) {
+        svg.innerHTML = ''; 
+//    // Adjusted dynamic viewBox for smaller graph size
+//    const viewBoxSize = 30 + (n - 9) * 3; // Increased for smaller graph
+//         svg.setAttribute('viewBox', `-${viewBoxSize/2} -${viewBoxSize/2} ${viewBoxSize} ${viewBoxSize}`);
+
+        const points = [...centerpoints(n, 3)]
     const dead = new Set(svg.querySelectorAll('.edge, .node'))
 
     for (let i = 0; i != n; ++i) {
@@ -104,15 +151,27 @@ function drawClique(n=12, svg=proof) {
     }
 }
 
-addEventListener('click', function(evt) {
-  if (evt.target.matches('.swatch')) {
-    this._selectedColor = evt.target.style.backgroundColor;
-  }
-  if (evt.target.matches('.edge')) {
-    console.log(evt.target, this._selectedColor)
-    evt.target.style.stroke = this._selectedColor || 'red'
-  }
-})
+
+// Event listeners for color swatches, click and touch events
+addEventListener('click', handleColorChange);
+addEventListener('touchstart', handleColorChange);
+
+function handleColorChange(evt) {
+    if (evt.target.matches('.swatch')) {
+        this._selectedColor = evt.target.style.backgroundColor;
+    }
+    if (evt.target.matches('.edge')) {
+        console.log(evt.target, this._selectedColor)
+        evt.target.style.stroke = this._selectedColor || 'red'
+    }
+}
+
+// Event listener for the slider
+document.getElementById('nodeSlider').addEventListener('input', function() {
+    drawClique(this.value);
+});
+
+
 
 function *centerpoints(n, rx=1.0, ry=rx) {
     for (let i = 0; i < n; ++i) {
